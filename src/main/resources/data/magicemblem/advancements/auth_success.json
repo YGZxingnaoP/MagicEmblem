@@ -1,0 +1,18 @@
+{
+    "display": {
+        "icon": {
+            "item": "minecraft:writable_book"
+        },
+        "title": {"translate": "advancement.magicemblem.auth_success"},
+        "description": {"translate": "advancement.magicemblem.auth_success.desc"},
+        "frame": "challenge",
+        "show_toast": true,
+        "announce_to_chat": true
+    },
+    "criteria": {
+        "auth_success": {
+            "trigger": "magicemblem:auth_success"
+        }
+    },
+    "parent": "magicemblem:get_emblem"
+}

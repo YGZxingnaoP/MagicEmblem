@@ -1,0 +1,45 @@
+{
+    "itemGroup.magicemblem.magic_emblem_tab": "Magic Emblem",
+
+    "item.magicemblem.usst_emblem_pattern": "USST Emblem Pattern",
+    "item.magicemblem.usst_emblem_pattern.desc": "University of Shanghai for Science and Technology emblem pattern",
+    "item.magicemblem.magic_emblem": "Magic Emblem",
+    "item.magicemblem.magic_emblem.school": "School: %s",
+    "item.magicemblem.magic_emblem.desc": "A mysterious emblem imbued with the power of university spirit",
+    "item.magicemblem.example_emblem": "Example Emblem",
+    "item.magicemblem.example_emblem.desc": "§7[Dev Tool] Example emblem model, right-click for guide",
+
+    "block.magicemblem.magic_emblem_block": "Magic Emblem Pedestal",
+    "block.magicemblem.example_block": "Example Emblem Pedestal",
+
+    "effect.magicemblem.glorious_student": "Glorious College Student",
+    "effect.magicemblem.serious_violation": "Serious Violation",
+    "effect.magicemblem.worktime": "Excellent Worktime",
+    "effect.magicemblem.early_class": "Early Morning Class",
+
+    "gui.magicemblem.auth.title": "USST Identity Authentication",
+    "gui.magicemblem.auth.student_id": "Student ID",
+    "gui.magicemblem.auth.student_id.hint": "Enter your student ID",
+    "gui.magicemblem.auth.student_id.label": "Student ID:",
+    "gui.magicemblem.auth.password": "Password",
+    "gui.magicemblem.auth.password.hint": "Enter password",
+    "gui.magicemblem.auth.password.label": "Password:",
+    "gui.magicemblem.auth.verify": "Verify Identity",
+    "gui.magicemblem.auth.stop_music": "Stop Music",
+    "gui.magicemblem.auth.score_title": "§lMy Score",
+    "gui.magicemblem.auth.score_online": "● Recording",
+    "gui.magicemblem.auth.score_loading": "○ Loading...",
+    "gui.magicemblem.auth.score_hint": "+0.01/2s active | -0.01/10s after 10min AFK",
+
+    "gui.magicemblem.guide.title": "§lEmblem Model Addition Guide",
+    "gui.magicemblem.guide.close_hint": "Press ESC to close",
+
+    "advancement.magicemblem.get_emblem": "Isn't This an Emblem?",
+    "advancement.magicemblem.get_emblem.desc": "Obtain a Magic Emblem for the first time",
+    "advancement.magicemblem.auth_success": "Authentication Successful!",
+    "advancement.magicemblem.auth_success.desc": "Complete student identity authentication for the first time",
+    "advancement.magicemblem.serious_violation": "Security Will Maintain Order",
+    "advancement.magicemblem.serious_violation.desc": "Obtain the 'Serious Violation' effect for the first time",
+    "advancement.magicemblem.night_owl": "I Pulled an All-Nighter",
+    "advancement.magicemblem.night_owl.desc": "Survive the night and get the 'Early Morning Class' effect"
+}

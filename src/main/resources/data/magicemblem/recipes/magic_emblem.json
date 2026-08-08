@@ -1,0 +1,21 @@
+{
+    "type": "minecraft:crafting_shaped",
+    "category": "misc",
+    "pattern": [
+        "PPP",
+        "PEP",
+        "PPP"
+    ],
+    "key": {
+        "P": {
+            "tag": "minecraft:planks"
+        },
+        "E": {
+            "item": "magicemblem:usst_emblem_pattern"
+        }
+    },
+    "result": {
+        "item": "magicemblem:magic_emblem",
+        "count": 1
+    }
+}

@@ -1,0 +1,6 @@
+{
+    "parent": "builtin/entity",
+    "textures": {
+        "particle": "magicemblem:item/example_icon"
+    }
+}

@@ -1,0 +1,45 @@
+{
+    "itemGroup.magicemblem.magic_emblem_tab": "魔法校徽",
+
+    "item.magicemblem.usst_emblem_pattern": "上海理工大学校徽图案",
+    "item.magicemblem.usst_emblem_pattern.desc": "上海理工大学校徽旗帜图案",
+    "item.magicemblem.magic_emblem": "魔法校徽",
+    "item.magicemblem.magic_emblem.school": "学校: %s",
+    "item.magicemblem.magic_emblem.desc": "一枚蕴含大学精神之力的神秘校徽",
+    "item.magicemblem.example_emblem": "Example 校徽",
+    "item.magicemblem.example_emblem.desc": "§7[开发辅助] 示例校徽模型，右键查看添加指南",
+
+    "block.magicemblem.magic_emblem_block": "魔法校徽底座",
+    "block.magicemblem.example_block": "Example 校徽底座",
+
+    "effect.magicemblem.glorious_student": "我是光荣的大学牲",
+    "effect.magicemblem.serious_violation": "严重违纪",
+    "effect.magicemblem.worktime": "绝赞worktime",
+    "effect.magicemblem.early_class": "早八时间",
+
+    "gui.magicemblem.auth.title": "上海理工大学身份认证",
+    "gui.magicemblem.auth.student_id": "学号",
+    "gui.magicemblem.auth.student_id.hint": "请输入学号",
+    "gui.magicemblem.auth.student_id.label": "学号:",
+    "gui.magicemblem.auth.password": "密码",
+    "gui.magicemblem.auth.password.hint": "请输入密码",
+    "gui.magicemblem.auth.password.label": "密码:",
+    "gui.magicemblem.auth.verify": "验证身份",
+    "gui.magicemblem.auth.stop_music": "停止播放",
+    "gui.magicemblem.auth.score_title": "§l我的积分",
+    "gui.magicemblem.auth.score_online": "● 在线记录中",
+    "gui.magicemblem.auth.score_loading": "○ 加载中...",
+    "gui.magicemblem.auth.score_hint": "持续活动+0.01/2s | 挂机10min后-0.01/10s",
+
+    "gui.magicemblem.guide.title": "§l校徽模型添加指南",
+    "gui.magicemblem.guide.close_hint": "按 ESC 关闭",
+
+    "advancement.magicemblem.get_emblem": "这不是校徽吗",
+    "advancement.magicemblem.get_emblem.desc": "首次获得魔法校徽",
+    "advancement.magicemblem.auth_success": "认证成功！",
+    "advancement.magicemblem.auth_success.desc": "首次完成学生身份认证",
+    "advancement.magicemblem.serious_violation": "保安将维持秩序",
+    "advancement.magicemblem.serious_violation.desc": "首次获得\"严重违纪\"效果",
+    "advancement.magicemblem.night_owl": "我熬穿了",
+    "advancement.magicemblem.night_owl.desc": "熬夜不睡并获得\"早八时间\"效果"
+}

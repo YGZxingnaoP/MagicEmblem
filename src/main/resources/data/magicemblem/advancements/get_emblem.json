@@ -1,0 +1,18 @@
+{
+    "display": {
+        "icon": {
+            "item": "magicemblem:magic_emblem"
+        },
+        "title": {"translate": "advancement.magicemblem.get_emblem"},
+        "description": {"translate": "advancement.magicemblem.get_emblem.desc"},
+        "background": "minecraft:textures/block/stone.png",
+        "frame": "task",
+        "show_toast": true,
+        "announce_to_chat": true
+    },
+    "criteria": {
+        "get_emblem": {
+            "trigger": "magicemblem:get_emblem"
+        }
+    }
+}

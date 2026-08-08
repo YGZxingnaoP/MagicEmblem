@@ -1,0 +1,18 @@
+{
+    "display": {
+        "icon": {
+            "item": "minecraft:iron_sword"
+        },
+        "title": {"translate": "advancement.magicemblem.serious_violation"},
+        "description": {"translate": "advancement.magicemblem.serious_violation.desc"},
+        "frame": "goal",
+        "show_toast": true,
+        "announce_to_chat": true
+    },
+    "criteria": {
+        "serious_violation": {
+            "trigger": "magicemblem:serious_violation"
+        }
+    },
+    "parent": "magicemblem:auth_success"
+}

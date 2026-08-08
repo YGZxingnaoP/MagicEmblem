@@ -1,0 +1,8 @@
+{
+    "variants": {
+        "facing=north": { "model": "magicemblem:block/example_block" },
+        "facing=south": { "model": "magicemblem:block/example_block" },
+        "facing=east":  { "model": "magicemblem:block/example_block" },
+        "facing=west":  { "model": "magicemblem:block/example_block" }
+    }
+}

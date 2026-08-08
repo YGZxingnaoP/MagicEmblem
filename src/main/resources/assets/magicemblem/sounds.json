@@ -1,0 +1,10 @@
+{
+    "usst_anthem": {
+        "sounds": [
+            {
+                "name": "magicemblem:usst_anthem",
+                "stream": true
+            }
+        ]
+    }
+}

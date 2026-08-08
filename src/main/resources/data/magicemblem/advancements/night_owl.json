@@ -1,0 +1,18 @@
+{
+    "display": {
+        "icon": {
+            "item": "minecraft:clock"
+        },
+        "title": {"translate": "advancement.magicemblem.night_owl"},
+        "description": {"translate": "advancement.magicemblem.night_owl.desc"},
+        "frame": "challenge",
+        "show_toast": true,
+        "announce_to_chat": true
+    },
+    "criteria": {
+        "night_owl": {
+            "trigger": "magicemblem:night_owl"
+        }
+    },
+    "parent": "magicemblem:auth_success"
+}
