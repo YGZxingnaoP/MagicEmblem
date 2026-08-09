@@ -1,12 +1,14 @@
 package com.magicemblem;
 
 import com.magicemblem.client.renderer.EmblemBlockRenderer;
+import com.magicemblem.client.renderer.entity.SchoolGuardRenderer;
 import com.magicemblem.common.event.ModAdvancementTriggers;
 import com.magicemblem.common.event.ModEventHandlers;
 import com.magicemblem.init.ModBlocks;
 import com.magicemblem.init.ModBlockEntities;
 import com.magicemblem.init.ModCreativeTabs;
 import com.magicemblem.init.ModEffects;
+import com.magicemblem.init.ModEntities;
 import com.magicemblem.init.ModItems;
 import com.magicemblem.init.ModSoundEvents;
 import com.magicemblem.network.ModNetwork;
@@ -14,6 +16,7 @@ import com.magicemblem.school.SchoolPasswordManager;
 import com.magicemblem.school.SchoolRegistry;
 import com.mojang.logging.LogUtils;
 import net.minecraft.client.renderer.blockentity.BlockEntityRenderers;
+import net.minecraft.client.renderer.entity.EntityRenderers;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.eventbus.api.IEventBus;
@@ -57,6 +60,7 @@ public class MagicEmblem {
         ModEffects.EFFECTS.register(modEventBus);
         ModSoundEvents.SOUND_EVENTS.register(modEventBus);
         ModCreativeTabs.CREATIVE_MODE_TABS.register(modEventBus);
+        ModEntities.ENTITIES.register(modEventBus);
 
         // 注册 Forge 事件总线（ModEventHandlers 的 @SubscribeEvent 方法）
         MinecraftForge.EVENT_BUS.register(this);
@@ -95,6 +99,8 @@ public class MagicEmblem {
                 BlockEntityRenderers.register(
                         ModBlockEntities.EXAMPLE_BE.get(),
                         EmblemBlockRenderer::new);
+                // 注册超级保安实体渲染器
+                EntityRenderers.register(ModEntities.SCHOOL_GUARD.get(), SchoolGuardRenderer::new);
             });
         }
     }

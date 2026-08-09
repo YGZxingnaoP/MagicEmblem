@@ -29,5 +29,7 @@ public class ModCreativeTabs {
                         output.accept(ModItems.MAGIC_EMBLEM.get());
                         // Example 校徽（开发辅助）
                         output.accept(ModItems.EXAMPLE_EMBLEM.get());
+                        // 超级保安刷怪蛋
+                        output.accept(ModItems.SCHOOL_GUARD_SPAWN_EGG.get());
                     }).build());
 }

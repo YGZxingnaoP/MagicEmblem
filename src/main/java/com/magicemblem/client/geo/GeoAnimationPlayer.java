@@ -21,6 +21,8 @@ import java.util.*;
  * - 骨骼 rotation/position/scale 关键帧插值
  * - 循环播放（loop: true）
  * - 数学表达式求值（简化版，支持 math.sin/math.cos + query.anim_time）
+ * - pre/post 关键帧格式（Bedrock 1.8.0+）
+ * - catmullrom 插值模式
  * 
  * 动画 JSON 格式：
  * {
@@ -68,7 +70,12 @@ public class GeoAnimationPlayer {
 
     public static class KeyFrame {
         public float time;
-        public String[] values; // 存储原始值（支持表达式）
+        /** 关键帧值（post 值，用于标准插值） */
+        public String[] values;
+        /** pre 值（用于 catmullrom 插值的起始值，可能为 null） */
+        public String[] preValues;
+        /** 插值模式：null=线性，"catmullrom"=Catmull-Rom 样条 */
+        public String lerpMode;
     }
 
     // ===== 加载动画 =====
@@ -142,12 +149,17 @@ public class GeoAnimationPlayer {
                 JsonElement frameElem = framesObj.get(timeStr);
                 if (frameElem.isJsonObject()) {
                     JsonObject frameObj = frameElem.getAsJsonObject();
-                    if (frameObj.has("vector")) {
-                        JsonArray vec = frameObj.getAsJsonArray("vector");
-                        frame.values = new String[vec.size()];
-                        for (int i = 0; i < vec.size(); i++) {
-                            frame.values[i] = vec.get(i).getAsString();
-                        }
+                    // 解析 lerp_mode
+                    if (frameObj.has("lerp_mode")) {
+                        frame.lerpMode = frameObj.get("lerp_mode").getAsString();
+                    }
+                    // 解析 pre/post 格式
+                    if (frameObj.has("pre") && frameObj.has("post")) {
+                        frame.preValues = parseVector(frameObj.getAsJsonObject("pre"));
+                        frame.values = parseVector(frameObj.getAsJsonObject("post"));
+                    } else if (frameObj.has("vector")) {
+                        // 标准格式：直接 vector
+                        frame.values = parseVector(frameObj);
                     }
                 } else if (frameElem.isJsonArray()) {
                     JsonArray arr = frameElem.getAsJsonArray();
@@ -162,6 +174,21 @@ public class GeoAnimationPlayer {
         // 按时间排序
         frames.sort(Comparator.comparingDouble(f -> f.time));
         return frames;
+    }
+
+    /**
+     * 从 JsonObject 中解析 vector 数组
+     */
+    private String[] parseVector(JsonObject obj) {
+        if (obj.has("vector")) {
+            JsonArray vec = obj.getAsJsonArray("vector");
+            String[] result = new String[vec.size()];
+            for (int i = 0; i < vec.size(); i++) {
+                result[i] = vec.get(i).getAsString();
+            }
+            return result;
+        }
+        return null;
     }
 
     // ===== 播放控制 =====
@@ -241,7 +268,7 @@ public class GeoAnimationPlayer {
     }
 
     /**
-     * 关键帧插值
+     * 关键帧插值（支持 catmullrom 模式）
      */
     private float[] interpolateKeyFrames(List<KeyFrame> frames, float time, float[] defaultVal) {
         if (frames.isEmpty()) return defaultVal.clone();
@@ -268,12 +295,55 @@ public class GeoAnimationPlayer {
         float t = (time - prev.time) / (next.time - prev.time);
         t = Math.max(0, Math.min(1, t));
 
+        // catmullrom 插值
+        if ("catmullrom".equals(next.lerpMode)) {
+            return catmullRomInterpolate(frames, prev, next, t, time, defaultVal);
+        }
+
+        // 标准线性插值
         float[] v0 = evaluateValues(prev.values, time, defaultVal);
         float[] v1 = evaluateValues(next.values, time, defaultVal);
 
         float[] result = new float[Math.min(v0.length, v1.length)];
         for (int i = 0; i < result.length; i++) {
             result[i] = v0[i] + (v1[i] - v0[i]) * t;
+        }
+        return result;
+    }
+
+    /**
+     * Catmull-Rom 样条插值
+     * 使用前后各一个额外关键帧来计算平滑曲线
+     */
+    private float[] catmullRomInterpolate(List<KeyFrame> frames, KeyFrame prev, KeyFrame next,
+                                            float t, float time, float[] defaultVal) {
+        // 获取前前一个和后后一个关键帧（用于 Catmull-Rom 的控制点）
+        int prevIdx = frames.indexOf(prev);
+        KeyFrame beforePrev = prevIdx > 0 ? frames.get(prevIdx - 1) : prev;
+        int nextIdx = frames.indexOf(next);
+        KeyFrame afterNext = nextIdx < frames.size() - 1 ? frames.get(nextIdx + 1) : next;
+
+        // 使用 post 值作为插值目标，pre 值作为控制点
+        // 对于 pre/post 格式的关键帧，pre 是进入值，post 是离开值
+        // Catmull-Rom: p(t) = 0.5 * ((2*P1) + (-P0 + P2)*t + (2*P0 - 5*P1 + 4*P2 - P3)*t^2 + (-P0 + 3*P1 - 3*P2 + P3)*t^3)
+        float[] p0 = evaluateValues(beforePrev == prev ? beforePrev.values : beforePrev.values, time, defaultVal);
+        // 对于 pre/post 格式，prev 的离开值是 post（values），进入值是 pre（preValues）
+        float[] p1 = evaluateValues(prev.values, time, defaultVal);
+        // next 的进入值是 pre（preValues），离开值是 post（values）
+        float[] p2 = evaluateValues(next.preValues != null ? next.preValues : next.values, time, defaultVal);
+        float[] p3 = evaluateValues(afterNext == next ? afterNext.values : (afterNext.preValues != null ? afterNext.preValues : afterNext.values), time, defaultVal);
+
+        int len = Math.min(Math.min(p0.length, p1.length), Math.min(p2.length, p3.length));
+        float[] result = new float[len];
+        float t2 = t * t;
+        float t3 = t2 * t;
+        for (int i = 0; i < len; i++) {
+            result[i] = 0.5f * (
+                2.0f * p1[i] +
+                (-p0[i] + p2[i]) * t +
+                (2.0f * p0[i] - 5.0f * p1[i] + 4.0f * p2[i] - p3[i]) * t2 +
+                (-p0[i] + 3.0f * p1[i] - 3.0f * p2[i] + p3[i]) * t3
+            );
         }
         return result;
     }

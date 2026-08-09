@@ -8,6 +8,9 @@
     "item.magicemblem.magic_emblem.desc": "A mysterious emblem imbued with the power of university spirit",
     "item.magicemblem.example_emblem": "Example Emblem",
     "item.magicemblem.example_emblem.desc": "§7[Dev Tool] Example emblem model, right-click for guide",
+    "item.magicemblem.school_guard_spawn_egg": "School Guard Spawn Egg",
+
+    "entity.magicemblem.school_guard": "School Guard",
 
     "block.magicemblem.magic_emblem_block": "Magic Emblem Pedestal",
     "block.magicemblem.example_block": "Example Emblem Pedestal",

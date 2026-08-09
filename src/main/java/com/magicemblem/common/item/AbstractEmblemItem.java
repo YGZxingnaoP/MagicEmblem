@@ -4,6 +4,7 @@ import com.magicemblem.common.block.AbstractEmblemBlock;
 import com.magicemblem.common.blockentity.AbstractEmblemBlockEntity;
 import com.magicemblem.network.CameraAnimTriggerPacket;
 import com.magicemblem.network.ModNetwork;
+import com.magicemblem.network.PlayAnthemPacket;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.damagesource.DamageSource;
@@ -84,8 +85,15 @@ public abstract class AbstractEmblemItem extends Item {
 
         if (pContext.getPlayer() instanceof ServerPlayer serverPlayer) {
             serverPlayer.getPersistentData().putBoolean("saw_camera_anim", true);
+            // 发送运镜触发包
             ModNetwork.CHANNEL.send(PacketDistributor.PLAYER.with(() -> serverPlayer),
                     new CameraAnimTriggerPacket(placePos));
+            // 发送校歌播放包（与运镜分离，每次放置都播放校歌）
+            if (level.getBlockEntity(placePos) instanceof AbstractEmblemBlockEntity be
+                    && be.getSchoolId() != null) {
+                ModNetwork.CHANNEL.send(PacketDistributor.PLAYER.with(() -> serverPlayer),
+                        new PlayAnthemPacket(be.getSchoolId()));
+            }
         }
     }
 

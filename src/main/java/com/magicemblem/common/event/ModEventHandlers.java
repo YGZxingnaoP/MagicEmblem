@@ -3,7 +3,9 @@ package com.magicemblem.common.event;
 import com.magicemblem.MagicEmblem;
 import com.magicemblem.common.block.MagicEmblemBlock;
 import com.magicemblem.common.blockentity.AbstractEmblemBlockEntity;
+import com.magicemblem.common.entity.SchoolGuardEntity;
 import com.magicemblem.init.ModEffects;
+import com.magicemblem.init.ModEntities;
 import com.magicemblem.init.ModItems;
 import com.magicemblem.network.CameraAnimTriggerPacket;
 import com.magicemblem.network.ModNetwork;
@@ -19,7 +21,6 @@ import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.Pose;
-import net.minecraft.world.entity.monster.Vindicator;
 import net.minecraft.world.entity.npc.AbstractVillager;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
@@ -34,6 +35,8 @@ import net.minecraftforge.event.entity.player.PlayerEvent.ItemPickupEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.network.PacketDistributor;
+
+import java.util.List;
 
 /**
  * 模组事件处理器
@@ -228,21 +231,38 @@ public class ModEventHandlers {
             }
         }
 
-        // ===== 严重违纪：10秒延迟生成超级保安（防止跳脸） =====
+        // ===== 严重违纪：10秒延迟首次生成超级保安，之后每2分钟生成一次 =====
         if (player.tickCount % 20 == 0) {
             boolean hasSeriousViolation = player.hasEffect(ModEffects.SERIOUS_VIOLATION.get());
             if (hasSeriousViolation) {
                 CompoundTag modData = getOrCreateModData(player);
                 long svTime = modData.getLong("serious_violation_time");
+                long lastGuardSpawn = modData.getLong("last_guard_spawn_time");
                 long currentTime = player.level().getGameTime();
-                // 10秒（200tick）延迟后生成卫道士
-                if (svTime > 0 && currentTime - svTime >= 200) {
-                    MagicEmblem.LOGGER.info("[MagicEmblem] Spawning super guard for player {} at ({}, {}, {})",
-                            player.getName().getString(),
-                            player.getBlockX(), player.getBlockY(), player.getBlockZ());
-                    spawnSuperGuard(player);
-                    // 重置时间戳，防止重复生成（下次需要重新获得严重违纪才会再生成）
-                    modData.putLong("serious_violation_time", 0);
+
+                if (svTime > 0) {
+                    // 首次：10秒（200tick）延迟后生成
+                    if (lastGuardSpawn == 0 && currentTime - svTime >= 200) {
+                        // 检查附近是否已有超级保安（不重复生成）
+                        if (!hasNearbySchoolGuard(player)) {
+                            MagicEmblem.LOGGER.info("[MagicEmblem] Spawning school guard (first) for player {} at ({}, {}, {})",
+                                    player.getName().getString(),
+                                    player.getBlockX(), player.getBlockY(), player.getBlockZ());
+                            spawnSuperGuard(player);
+                            modData.putLong("last_guard_spawn_time", currentTime);
+                        }
+                    }
+                    // 后续：每2分钟（2400tick）生成一次
+                    else if (lastGuardSpawn > 0 && currentTime - lastGuardSpawn >= 2400) {
+                        // 检查附近是否已有超级保安（不重复生成）
+                        if (!hasNearbySchoolGuard(player)) {
+                            MagicEmblem.LOGGER.info("[MagicEmblem] Spawning school guard (periodic) for player {} at ({}, {}, {})",
+                                    player.getName().getString(),
+                                    player.getBlockX(), player.getBlockY(), player.getBlockZ());
+                            spawnSuperGuard(player);
+                            modData.putLong("last_guard_spawn_time", currentTime);
+                        }
+                    }
                 }
             } else {
                 // 没有严重违纪时清除时间戳
@@ -250,54 +270,8 @@ public class ModEventHandlers {
                 if (modData.getLong("serious_violation_time") != 0) {
                     modData.putLong("serious_violation_time", 0);
                 }
-            }
-        }
-
-        // ===== 超级保安120秒后消失（15秒保护期，防止刚生成就被删除） =====
-        if (player.tickCount % 100 == 0) { // 每5秒检查一次
-            long currentTime = player.level().getGameTime();
-            player.level().getEntitiesOfClass(Vindicator.class,
-                    player.getBoundingBox().inflate(64),
-                    v -> {
-                        CompoundTag tag = v.getPersistentData();
-                        if (!tag.getBoolean("magicemblem_super_guard")) return false;
-                        long aliveTime = currentTime - tag.getLong("spawn_time");
-                        // 15秒保护期（300tick）内不删除
-                        if (aliveTime < 300L) return false;
-                        // 120秒（2400tick）后删除
-                        return aliveTime > 2400L;
-                    }).forEach(Entity::discard);
-        }
-
-        // ===== 首次放置检测：服务端检查附近是否有firstPlace方块 =====
-        // 玩家生涯中仅触发一次（玩家级别flag）
-        if (player.tickCount % 5 == 0) {
-            CompoundTag pdata = player.getPersistentData();
-            if (!pdata.getBoolean("saw_camera_anim")) {
-                // 玩家还没看过运镜，检查附近是否有firstPlace方块
-                BlockPos playerPos = player.blockPosition();
-                BlockPos.MutableBlockPos searchPos = new BlockPos.MutableBlockPos();
-                for (int dx = -3; dx <= 3; dx++) {
-                    for (int dy = -3; dy <= 3; dy++) {
-                        for (int dz = -3; dz <= 3; dz++) {
-                            searchPos.set(playerPos.getX() + dx, playerPos.getY() + dy, playerPos.getZ() + dz);
-                            if (player.level().getBlockEntity(searchPos) instanceof AbstractEmblemBlockEntity be
-                                    && be.isFirstPlace()) {
-                                // 找到firstPlace方块！发送运镜触发包
-                                BlockPos targetPos = searchPos.immutable();
-                                MagicEmblem.LOGGER.info("[MagicEmblem] First place detected for player {} at {}, triggering camera anim",
-                                        player.getName().getString(), targetPos);
-                                // 标记玩家已看过
-                                pdata.putBoolean("saw_camera_anim", true);
-                                // 清除方块的firstPlace标记
-                                be.setFirstPlace(false);
-                                // 发送运镜触发包到客户端
-                                ModNetwork.CHANNEL.send(PacketDistributor.PLAYER.with(() -> player),
-                                        new CameraAnimTriggerPacket(targetPos));
-                                break;
-                            }
-                        }
-                    }
+                if (modData.getLong("last_guard_spawn_time") != 0) {
+                    modData.putLong("last_guard_spawn_time", 0);
                 }
             }
         }
@@ -375,61 +349,67 @@ public class ModEventHandlers {
     // ===== 辅助方法 =====
 
     /**
-     * 生成超级保安（卫道士）
-     * 力量255、疾跑V、抗性提升255，命名"超级保安"，2分钟后消失
-     * 
-     * 关键：不调用 finalizeSpawn()，它会设置 PersistenceRequired=false
-     * 导致和平难度下敌对生物被游戏引擎立即清除
+     * 检查玩家附近是否已有超级保安（64格范围内）
+     */
+    private static boolean hasNearbySchoolGuard(ServerPlayer player) {
+        List<SchoolGuardEntity> guards = player.level().getEntitiesOfClass(SchoolGuardEntity.class,
+                player.getBoundingBox().inflate(64));
+        return !guards.isEmpty();
+    }
+
+    /**
+     * 生成超级保安
+     * 在距玩家5方块处任意位置生成
+     * 自带速度III和力量V，无抗性提升
+     * 存在90秒后自动消失（由实体自身tick处理）
      */
     private static void spawnSuperGuard(ServerPlayer player) {
         Level level = player.level();
         if (!(level instanceof net.minecraft.server.level.ServerLevel serverLevel)) {
-            MagicEmblem.LOGGER.error("[MagicEmblem] Cannot spawn super guard: not a ServerLevel");
+            MagicEmblem.LOGGER.error("[MagicEmblem] Cannot spawn school guard: not a ServerLevel");
             return;
         }
         try {
-            double spawnX = player.getX() + Math.sin(Math.toRadians(player.getYRot())) * 3.0;
-            double spawnZ = player.getZ() - Math.cos(Math.toRadians(player.getYRot())) * 3.0;
+            // 在距玩家5方块处任意角度生成
+            double angle = Math.random() * Math.PI * 2;
+            double spawnX = player.getX() + Math.cos(angle) * 5.0;
+            double spawnZ = player.getZ() + Math.sin(angle) * 5.0;
             double spawnY = player.getY();
 
-            MagicEmblem.LOGGER.info("[MagicEmblem] spawnSuperGuard START: player=({}, {}, {}), spawn=({}, {}, {}), difficulty={}",
+            MagicEmblem.LOGGER.info("[MagicEmblem] spawnSuperGuard: player=({}, {}, {}), spawn=({}, {}, {})",
                     player.getBlockX(), player.getBlockY(), player.getBlockZ(),
-                    spawnX, spawnY, spawnZ, serverLevel.getDifficulty());
+                    spawnX, spawnY, spawnZ);
 
-            // Step 1: 直接构造实体（不用 NBT load 或 finalizeSpawn）
-            Vindicator vindicator = new Vindicator(
-                    net.minecraft.world.entity.EntityType.VINDICATOR, serverLevel);
-            vindicator.setPos(spawnX, spawnY, spawnZ);
-            vindicator.setCustomName(Component.literal("超级保安"));
-            vindicator.setCustomNameVisible(true);
+            // 构造超级保安实体
+            SchoolGuardEntity guard = new SchoolGuardEntity(ModEntities.SCHOOL_GUARD.get(), serverLevel);
+            guard.setPos(spawnX, spawnY, spawnZ);
+            guard.setCustomName(Component.literal("超级保安"));
+            guard.setCustomNameVisible(true);
 
-            // Step 2: 超级buff
-            vindicator.addEffect(new MobEffectInstance(MobEffects.DAMAGE_BOOST,
-                    Integer.MAX_VALUE, 254, false, false));
-            vindicator.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SPEED,
+            // 速度III（amplifier=2）和力量V（amplifier=4），无抗性提升
+            guard.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SPEED,
+                    Integer.MAX_VALUE, 2, false, false));
+            guard.addEffect(new MobEffectInstance(MobEffects.DAMAGE_BOOST,
                     Integer.MAX_VALUE, 4, false, false));
-            vindicator.addEffect(new MobEffectInstance(MobEffects.DAMAGE_RESISTANCE,
-                    Integer.MAX_VALUE, 254, false, false));
 
-            // Step 3: 标记2分钟清理计时器
-            CompoundTag tag = vindicator.getPersistentData();
+            // 标记生成时间（用于90秒后自动消失）
+            CompoundTag tag = guard.getPersistentData();
             tag.putBoolean("magicemblem_super_guard", true);
             tag.putLong("spawn_time", serverLevel.getGameTime());
 
-            // Step 4: 持久化（必须最后设置！finalizeSpawn会覆盖为false）
-            vindicator.setPersistenceRequired();
+            // 持久化（防止和平难度清除）
+            guard.setPersistenceRequired();
 
-            // Step 5: 加入世界
-            boolean added = serverLevel.addFreshEntity(vindicator);
-            MagicEmblem.LOGGER.info("[MagicEmblem] addFreshEntity: result={}, id={}, alive={}, removed={}, persistent={}, pos=({}, {}, {})",
-                    added, vindicator.getId(), vindicator.isAlive(), vindicator.isRemoved(),
-                    vindicator.isPersistenceRequired(),
-                    vindicator.getX(), vindicator.getY(), vindicator.getZ());
+            // 设置初始血量
+            guard.setHealth(200.0f);
+
+            // 加入世界
+            boolean added = serverLevel.addFreshEntity(guard);
+            MagicEmblem.LOGGER.info("[MagicEmblem] School guard spawned: result={}, pos=({}, {}, {})",
+                    added, guard.getX(), guard.getY(), guard.getZ());
 
             if (!added) {
-                MagicEmblem.LOGGER.error("[MagicEmblem] FAILED: addFreshEntity=false! difficulty={}, peaceful={}",
-                        serverLevel.getDifficulty(),
-                        serverLevel.getDifficulty() == net.minecraft.world.Difficulty.PEACEFUL);
+                MagicEmblem.LOGGER.error("[MagicEmblem] FAILED to spawn school guard!");
             }
         } catch (Exception e) {
             MagicEmblem.LOGGER.error("[MagicEmblem] EXCEPTION in spawnSuperGuard", e);

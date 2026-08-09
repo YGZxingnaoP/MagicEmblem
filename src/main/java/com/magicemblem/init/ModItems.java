@@ -3,6 +3,7 @@ package com.magicemblem.init;
 import com.magicemblem.MagicEmblem;
 import com.magicemblem.common.item.ExampleItem;
 import com.magicemblem.common.item.MagicEmblemItem;
+import com.magicemblem.common.item.SchoolGuardSpawnEggItem;
 import com.magicemblem.common.item.UsstEmblemPatternItem;
 import net.minecraft.world.item.Item;
 import net.minecraftforge.registries.DeferredRegister;
@@ -35,4 +36,9 @@ public class ModItems {
     // 特性：fireResistant, 右键放置方块, 手持显示 geo.json 模型
     public static final RegistryObject<Item> EXAMPLE_EMBLEM = ITEMS.register(
             "example_emblem", ExampleItem::new);
+
+    // ===== 超级保安刷怪蛋 =====
+    // 仅通过创造模式获取
+    public static final RegistryObject<Item> SCHOOL_GUARD_SPAWN_EGG = ITEMS.register(
+            "school_guard_spawn_egg", SchoolGuardSpawnEggItem::new);
 }

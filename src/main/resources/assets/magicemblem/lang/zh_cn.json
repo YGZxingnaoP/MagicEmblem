@@ -8,6 +8,9 @@
     "item.magicemblem.magic_emblem.desc": "一枚蕴含大学精神之力的神秘校徽",
     "item.magicemblem.example_emblem": "Example 校徽",
     "item.magicemblem.example_emblem.desc": "§7[开发辅助] 示例校徽模型，右键查看添加指南",
+    "item.magicemblem.school_guard_spawn_egg": "超级保安刷怪蛋",
+
+    "entity.magicemblem.school_guard": "超级保安",
 
     "block.magicemblem.magic_emblem_block": "魔法校徽底座",
     "block.magicemblem.example_block": "Example 校徽底座",

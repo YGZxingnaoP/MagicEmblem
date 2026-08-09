@@ -5,8 +5,11 @@ import com.magicemblem.common.blockentity.AbstractEmblemBlockEntity;
 import com.magicemblem.common.blockentity.MagicEmblemBlockEntity;
 import com.magicemblem.init.ModBlockEntities;
 import com.magicemblem.init.ModItems;
+import com.magicemblem.network.ModNetwork;
+import com.magicemblem.network.PlayAnthemPacket;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.player.Player;
@@ -18,6 +21,7 @@ import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.storage.loot.LootParams;
 import net.minecraft.world.phys.BlockHitResult;
+import net.minecraftforge.network.PacketDistributor;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
@@ -61,14 +65,18 @@ public class MagicEmblemBlock extends AbstractEmblemBlock {
     @Override
     public InteractionResult use(BlockState pState, Level pLevel, BlockPos pPos,
                                   Player pPlayer, InteractionHand pHand, BlockHitResult pHit) {
-        if (pLevel.isClientSide()) {
-            // 读取学校ID（用于认证界面显示）
+        if (!pLevel.isClientSide()) {
+            // 服务端：发送校歌播放包（统一通过 PlayAnthemPacket 播放，含掐停背景音乐和防重复）
+            if (pLevel.getBlockEntity(pPos) instanceof MagicEmblemBlockEntity be
+                    && be.getSchoolId() != null
+                    && pPlayer instanceof ServerPlayer serverPlayer) {
+                ModNetwork.CHANNEL.send(PacketDistributor.PLAYER.with(() -> serverPlayer),
+                        new PlayAnthemPacket(be.getSchoolId()));
+            }
+        } else {
+            // 客户端：打开认证界面
             String schoolId = "USST";
             if (pLevel.getBlockEntity(pPos) instanceof MagicEmblemBlockEntity be) {
-                // 播放校歌（如果未播放）
-                if (!be.isAnthemPlaying()) {
-                    be.playAnthem();
-                }
                 schoolId = be.getSchoolId() != null ? be.getSchoolId() : "USST";
             }
             Minecraft.getInstance().setScreen(new AuthScreen(pPos, schoolId));
@@ -82,8 +90,13 @@ public class MagicEmblemBlock extends AbstractEmblemBlock {
     public void onRemove(BlockState pState, Level pLevel, BlockPos pPos,
                           BlockState pNewState, boolean pMovedByPiston) {
         if (!pState.is(pNewState.getBlock())) {
-            if (pLevel.isClientSide() && pLevel.getBlockEntity(pPos) instanceof MagicEmblemBlockEntity be) {
-                be.stopAnthem();
+            if (pLevel.isClientSide()) {
+                // 停止方块实体级别的校歌
+                if (pLevel.getBlockEntity(pPos) instanceof MagicEmblemBlockEntity be) {
+                    be.stopAnthem();
+                }
+                // 同时停止 PlayAnthemPacket 级别的校歌
+                PlayAnthemPacket.stopCurrentAnthem();
             }
             super.onRemove(pState, pLevel, pPos, pNewState, pMovedByPiston);
         }
