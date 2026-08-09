@@ -383,6 +383,15 @@ public class ModEventHandlers {
             // 构造超级保安实体
             SchoolGuardEntity guard = new SchoolGuardEntity(ModEntities.SCHOOL_GUARD.get(), serverLevel);
             guard.setPos(spawnX, spawnY, spawnZ);
+
+            // 面朝玩家生成，保证生成后立刻锁定目标
+            // MC yaw: 0=南 90=西 → atan2(-dx, dz)
+            float facingYaw = (float) Math.toDegrees(Math.atan2(
+                    spawnX - player.getX(), player.getZ() - spawnZ));
+            guard.setYRot(facingYaw);
+            guard.yBodyRot = facingYaw;
+            guard.yHeadRot = facingYaw;
+
             guard.setCustomName(Component.literal("超级保安"));
             guard.setCustomNameVisible(true);
 

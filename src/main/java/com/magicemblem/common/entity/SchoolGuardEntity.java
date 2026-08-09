@@ -142,6 +142,9 @@ public class SchoolGuardEntity extends Vindicator {
         this.targetSelector.addGoal(0, new HurtByTargetGoal(this));
         this.targetSelector.addGoal(1, new NearestAttackableTargetGoal<>(this, Player.class, 64, true, false,
                 this::isValidTarget));
+        // 32格内：穿墙也能发现严重违纪玩家（优先级低于视线内检测）
+        this.targetSelector.addGoal(2, new NearestAttackableTargetGoal<>(this, Player.class, 32, false, false,
+                this::isValidTarget));
     }
 
     /**
@@ -285,8 +288,8 @@ public class SchoolGuardEntity extends Vindicator {
         headPitch = Math.max(-40, Math.min(40, headPitch));
 
         // 叠加到动画旋转上
-        // 动画系统已将 Bedrock 的 X/Y 取反，这里 headYaw 正向添加、headPitch 反向添加
-        headBone.rotation[1] += headYaw;
+        // headYaw>0(右转) → rotation[1]减 → PoseStack Y轴顺时针 → 头右转
+        headBone.rotation[1] -= headYaw;
         headBone.rotation[0] -= headPitch;
     }
 
