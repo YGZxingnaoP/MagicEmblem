@@ -24,6 +24,7 @@ public class ModAdvancementTriggers {
     public static final SeriousViolationTrigger SERIOUS_VIOLATION = new SeriousViolationTrigger();
     public static final GetEmblemTrigger GET_EMBLEM = new GetEmblemTrigger();
     public static final NightOwlTrigger NIGHT_OWL = new NightOwlTrigger();
+    public static final GuardLordTrigger GUARD_LORD = new GuardLordTrigger();
 
     /**
      * 注册所有触发器到Forge的CriteriaTriggers
@@ -38,6 +39,8 @@ public class ModAdvancementTriggers {
             MagicEmblem.LOGGER.info("[MagicEmblem] Registered advancement trigger: get_emblem");
             net.minecraft.advancements.CriteriaTriggers.register(NIGHT_OWL);
             MagicEmblem.LOGGER.info("[MagicEmblem] Registered advancement trigger: night_owl");
+            net.minecraft.advancements.CriteriaTriggers.register(GUARD_LORD);
+            MagicEmblem.LOGGER.info("[MagicEmblem] Registered advancement trigger: guard_lord");
         } catch (Exception e) {
             MagicEmblem.LOGGER.error("[MagicEmblem] FAILED to register advancement triggers!", e);
         }
@@ -124,6 +127,32 @@ public class ModAdvancementTriggers {
     // ===== 熬夜成就触发器 =====
     public static class NightOwlTrigger extends SimpleCriterionTrigger<NightOwlTrigger.Instance> {
         private static final ResourceLocation ID = new ResourceLocation(MagicEmblem.MODID, "night_owl");
+
+        @Override
+        protected Instance createInstance(JsonObject pJson, ContextAwarePredicate pPredicate,
+                                           DeserializationContext pContext) {
+            return new Instance(pPredicate);
+        }
+
+        @Override
+        public ResourceLocation getId() {
+            return ID;
+        }
+
+        public void trigger(ServerPlayer player) {
+            this.trigger(player, instance -> true);
+        }
+
+        public static class Instance extends AbstractCriterionTriggerInstance {
+            public Instance(ContextAwarePredicate pPlayer) {
+                super(ID, pPlayer);
+            }
+        }
+    }
+
+    // ===== 你惹怒了保安大队触发器 =====
+    public static class GuardLordTrigger extends SimpleCriterionTrigger<GuardLordTrigger.Instance> {
+        private static final ResourceLocation ID = new ResourceLocation(MagicEmblem.MODID, "guard_lord");
 
         @Override
         protected Instance createInstance(JsonObject pJson, ContextAwarePredicate pPredicate,

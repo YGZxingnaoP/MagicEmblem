@@ -44,5 +44,7 @@
     "advancement.magicemblem.serious_violation": "保安将维持秩序",
     "advancement.magicemblem.serious_violation.desc": "首次获得\"严重违纪\"效果",
     "advancement.magicemblem.night_owl": "我熬穿了",
-    "advancement.magicemblem.night_owl.desc": "熬夜不睡并获得\"早八时间\"效果"
+    "advancement.magicemblem.night_owl.desc": "熬夜不睡并获得\"早八时间\"效果",
+    "advancement.magicemblem.guard_lord": "你惹怒了保安大队",
+    "advancement.magicemblem.guard_lord.desc": "获得\"严重违纪III\"效果"
 }

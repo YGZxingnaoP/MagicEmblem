@@ -44,5 +44,7 @@
     "advancement.magicemblem.serious_violation": "Security Will Maintain Order",
     "advancement.magicemblem.serious_violation.desc": "Obtain the 'Serious Violation' effect for the first time",
     "advancement.magicemblem.night_owl": "I Pulled an All-Nighter",
-    "advancement.magicemblem.night_owl.desc": "Survive the night and get the 'Early Morning Class' effect"
+    "advancement.magicemblem.night_owl.desc": "Survive the night and get the 'Early Morning Class' effect",
+    "advancement.magicemblem.guard_lord": "You've Enraged the Guard Squad!",
+    "advancement.magicemblem.guard_lord.desc": "Obtain the 'Serious Violation III' effect"
 }

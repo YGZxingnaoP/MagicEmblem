@@ -1,0 +1,44 @@
+To honour the JVM settings for this build a single-use Daemon process will be forked. For more on this, please refer to https://docs.gradle.org/8.8/userguide/gradle_daemon.html#sec:disabling_the_daemon in the Gradle documentation.
+Daemon will be stopped at the end of the build 
+
+> Configure project :
+Java: 1.8.0_152, JVM: 25.152-b16 (Oracle Corporation), Arch: amd64
+
+> Task :compileJava
+D:\Java\IDEA\Project\MagicEmblem\src\main\java\com\magicemblem\common\event\ModAdvancementTriggers.java:51: 警告: [removal] ResourceLocation 中的 ResourceLocation(String,String) 已过时, 且标记为待删除
+        private static final ResourceLocation ID = new ResourceLocation(MagicEmblem.MODID, "auth_success");
+                                                   ^
+D:\Java\IDEA\Project\MagicEmblem\src\main\java\com\magicemblem\common\event\ModAdvancementTriggers.java:77: 警告: [removal] ResourceLocation 中的 ResourceLocation(String,String) 已过时, 且标记为待删除
+        private static final ResourceLocation ID = new ResourceLocation(MagicEmblem.MODID, "serious_violation");
+                                                   ^
+D:\Java\IDEA\Project\MagicEmblem\src\main\java\com\magicemblem\common\event\ModAdvancementTriggers.java:103: 警告: [removal] ResourceLocation 中的 ResourceLocation(String,String) 已过时, 且标记为待删除
+        private static final ResourceLocation ID = new ResourceLocation(MagicEmblem.MODID, "get_emblem");
+                                                   ^
+D:\Java\IDEA\Project\MagicEmblem\src\main\java\com\magicemblem\common\event\ModAdvancementTriggers.java:129: 警告: [removal] ResourceLocation 中的 ResourceLocation(String,String) 已过时, 且标记为待删除
+        private static final ResourceLocation ID = new ResourceLocation(MagicEmblem.MODID, "night_owl");
+                                                   ^
+D:\Java\IDEA\Project\MagicEmblem\src\main\java\com\magicemblem\common\event\ModAdvancementTriggers.java:155: 警告: [removal] ResourceLocation 中的 ResourceLocation(String,String) 已过时, 且标记为待删除
+        private static final ResourceLocation ID = new ResourceLocation(MagicEmblem.MODID, "guard_lord");
+                                                   ^
+5 个警告
+
+> Task :processResources
+> Task :classes
+> Task :jar
+> Task :downloadMcpConfig
+> Task :extractSrg UP-TO-DATE
+> Task :createMcpToSrg UP-TO-DATE
+> Task :reobfJar
+> Task :jarJar SKIPPED
+> Task :reobfJarJar SKIPPED
+> Task :assemble
+> Task :compileTestJava NO-SOURCE
+> Task :processTestResources NO-SOURCE
+> Task :testClasses UP-TO-DATE
+> Task :test NO-SOURCE
+> Task :check UP-TO-DATE
+> Task :build
+
+BUILD SUCCESSFUL in 34s
+7 actionable tasks: 5 executed, 2 up-to-date
+D:\Java\IDEA\Project\MagicEmblem>

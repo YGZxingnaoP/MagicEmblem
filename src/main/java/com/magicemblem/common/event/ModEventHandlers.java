@@ -28,6 +28,7 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.event.entity.living.LivingDamageEvent;
+import net.minecraftforge.event.entity.living.LivingDeathEvent;
 import net.minecraftforge.event.entity.living.MobEffectEvent;
 import net.minecraftforge.event.entity.player.PlayerEvent;
 import net.minecraftforge.event.entity.player.PlayerEvent.ItemCraftedEvent;
@@ -232,6 +233,7 @@ public class ModEventHandlers {
         }
 
         // ===== 严重违纪：10秒延迟首次生成超级保安，之后每2分钟生成一次 =====
+        // 等级制度：I→1名  II→3名  III→5名
         if (player.tickCount % 20 == 0) {
             boolean hasSeriousViolation = player.hasEffect(ModEffects.SERIOUS_VIOLATION.get());
             if (hasSeriousViolation) {
@@ -239,28 +241,34 @@ public class ModEventHandlers {
                 long svTime = modData.getLong("serious_violation_time");
                 long lastGuardSpawn = modData.getLong("last_guard_spawn_time");
                 long currentTime = player.level().getGameTime();
+                int violLevel = getViolationLevel(player);
 
                 if (svTime > 0) {
                     // 首次：10秒（200tick）延迟后生成
                     if (lastGuardSpawn == 0 && currentTime - svTime >= 200) {
-                        // 检查附近是否已有超级保安（不重复生成）
                         if (!hasNearbySchoolGuard(player)) {
-                            MagicEmblem.LOGGER.info("[MagicEmblem] Spawning school guard (first) for player {} at ({}, {}, {})",
-                                    player.getName().getString(),
-                                    player.getBlockX(), player.getBlockY(), player.getBlockZ());
-                            spawnSuperGuard(player);
+                            MagicEmblem.LOGGER.info("[MagicEmblem] Spawning school guard (first, level={}) for player {}",
+                                    violLevel, player.getName().getString());
+                            spawnSuperGuard(player, violLevel);
                             modData.putLong("last_guard_spawn_time", currentTime);
+                            // II级记录90秒窗口起始（与保安寿命对齐），用于追踪击杀升级
+                            if (violLevel == 1) {
+                                modData.putLong("guard_window_start", currentTime);
+                                modData.putInt("guard_kill_count", 0);
+                            }
                         }
                     }
                     // 后续：每2分钟（2400tick）生成一次
                     else if (lastGuardSpawn > 0 && currentTime - lastGuardSpawn >= 2400) {
-                        // 检查附近是否已有超级保安（不重复生成）
                         if (!hasNearbySchoolGuard(player)) {
-                            MagicEmblem.LOGGER.info("[MagicEmblem] Spawning school guard (periodic) for player {} at ({}, {}, {})",
-                                    player.getName().getString(),
-                                    player.getBlockX(), player.getBlockY(), player.getBlockZ());
-                            spawnSuperGuard(player);
+                            MagicEmblem.LOGGER.info("[MagicEmblem] Spawning school guard (periodic, level={}) for player {}",
+                                    violLevel, player.getName().getString());
+                            spawnSuperGuard(player, violLevel);
                             modData.putLong("last_guard_spawn_time", currentTime);
+                            if (violLevel == 1) {
+                                modData.putLong("guard_window_start", currentTime);
+                                modData.putInt("guard_kill_count", 0);
+                            }
                         }
                     }
                 }
@@ -312,6 +320,69 @@ public class ModEventHandlers {
     }
 
     /**
+     * 保安死亡事件 — 严重违纪升级检测
+     * I→II：击杀任意一名保安立即升级
+     * II→III：90秒窗口内击杀两名保安
+     * III：最高级，不再升级
+     */
+    @SubscribeEvent
+    public static void onEntityDeath(LivingDeathEvent event) {
+        if (!(event.getEntity() instanceof SchoolGuardEntity)) return;
+        if (event.getEntity().level().isClientSide()) return;
+
+        Entity killer = event.getSource().getEntity();
+        if (!(killer instanceof ServerPlayer player)) return;
+        if (!player.hasEffect(ModEffects.SERIOUS_VIOLATION.get())) return;
+
+        CompoundTag modData = getOrCreateModData(player);
+        int currentLevel = getViolationLevel(player);
+        long now = player.level().getGameTime();
+
+        if (currentLevel == 0) {
+            // I → II：击杀任意保安立即升级
+            MagicEmblem.LOGGER.info("[MagicEmblem] Player {} killed guard, upgrading to Serious Violation II",
+                    player.getName().getString());
+            player.removeEffect(ModEffects.SERIOUS_VIOLATION.get());
+            player.addEffect(new MobEffectInstance(
+                    ModEffects.SERIOUS_VIOLATION.get(), Integer.MAX_VALUE, 1, false, true));
+            modData.putLong("serious_violation_time", now);
+            modData.putLong("last_guard_spawn_time", 0);
+            modData.putInt("guard_kill_count", 0);
+        }
+        else if (currentLevel == 1) {
+            // II → III：90秒窗口内击杀2名保安
+            long windowStart = modData.getLong("guard_window_start");
+            // 如果窗口已过期，重置
+            if (windowStart == 0 || now - windowStart > 1800L) {
+                windowStart = now;
+                modData.putLong("guard_window_start", windowStart);
+                modData.putInt("guard_kill_count", 1);
+                MagicEmblem.LOGGER.info("[MagicEmblem] Player {} killed guard (1/2) in new 90s window",
+                        player.getName().getString());
+            } else {
+                int kills = modData.getInt("guard_kill_count") + 1;
+                modData.putInt("guard_kill_count", kills);
+                MagicEmblem.LOGGER.info("[MagicEmblem] Player {} killed guard ({}/2) in 90s window",
+                        player.getName().getString(), kills);
+                if (kills >= 2) {
+                    // II → III
+                    MagicEmblem.LOGGER.info("[MagicEmblem] Player {} upgraded to Serious Violation III!",
+                            player.getName().getString());
+                    player.removeEffect(ModEffects.SERIOUS_VIOLATION.get());
+                    player.addEffect(new MobEffectInstance(
+                            ModEffects.SERIOUS_VIOLATION.get(), Integer.MAX_VALUE, 2, false, true));
+                    modData.putLong("serious_violation_time", now);
+                    modData.putLong("last_guard_spawn_time", 0);
+                    modData.putInt("guard_kill_count", 0);
+                    // 触发"你惹怒了保安大队"成就
+                    ModAdvancementTriggers.GUARD_LORD.trigger(player);
+                }
+            }
+        }
+        // currentLevel == 2 (III): 最高级，不升级
+    }
+
+    /**
      * 玩家登录事件
      * 上线时清除所有模组buff（保底），认证状态不保留，需重新认证
      */
@@ -358,71 +429,73 @@ public class ModEventHandlers {
     }
 
     /**
-     * 生成超级保安
-     * 在距玩家5方块处任意位置生成
+     * 生成超级保安（按等级决定数量：I→1名 II→3名 III→5名）
+     * 在距玩家5方块处随机角度生成
      * 自带速度III和力量V，无抗性提升
      * 存在90秒后自动消失（由实体自身tick处理）
      */
-    private static void spawnSuperGuard(ServerPlayer player) {
+    private static void spawnSuperGuard(ServerPlayer player, int violLevel) {
         Level level = player.level();
         if (!(level instanceof net.minecraft.server.level.ServerLevel serverLevel)) {
             MagicEmblem.LOGGER.error("[MagicEmblem] Cannot spawn school guard: not a ServerLevel");
             return;
         }
+        int count;
+        switch (violLevel) {
+            case 1: count = 3; break;
+            case 2: count = 5; break;
+            default: count = 1; break;
+        }
+        MagicEmblem.LOGGER.info("[MagicEmblem] spawnSuperGuard: level={}, count={}, player=({}, {}, {})",
+                violLevel, count, player.getBlockX(), player.getBlockY(), player.getBlockZ());
         try {
-            // 在距玩家5方块处任意角度生成
-            double angle = Math.random() * Math.PI * 2;
-            double spawnX = player.getX() + Math.cos(angle) * 5.0;
-            double spawnZ = player.getZ() + Math.sin(angle) * 5.0;
-            double spawnY = player.getY();
+            // 以玩家为中心的均匀分布角度
+            double baseAngle = Math.random() * Math.PI * 2;
+            for (int i = 0; i < count; i++) {
+                double angle = baseAngle + (2.0 * Math.PI * i / count) + (Math.random() - 0.5) * 0.6;
+                double spawnX = player.getX() + Math.cos(angle) * 5.0;
+                double spawnZ = player.getZ() + Math.sin(angle) * 5.0;
+                double spawnY = player.getY();
 
-            MagicEmblem.LOGGER.info("[MagicEmblem] spawnSuperGuard: player=({}, {}, {}), spawn=({}, {}, {})",
-                    player.getBlockX(), player.getBlockY(), player.getBlockZ(),
-                    spawnX, spawnY, spawnZ);
+                SchoolGuardEntity guard = new SchoolGuardEntity(ModEntities.SCHOOL_GUARD.get(), serverLevel);
+                guard.setPos(spawnX, spawnY, spawnZ);
 
-            // 构造超级保安实体
-            SchoolGuardEntity guard = new SchoolGuardEntity(ModEntities.SCHOOL_GUARD.get(), serverLevel);
-            guard.setPos(spawnX, spawnY, spawnZ);
+                float facingYaw = (float) Math.toDegrees(Math.atan2(spawnX - player.getX(), player.getZ() - spawnZ));
+                guard.setYRot(facingYaw);
+                guard.yBodyRot = facingYaw;
+                guard.yHeadRot = facingYaw;
 
-            // 面朝玩家生成，保证生成后立刻锁定目标
-            // MC yaw: 0=南 90=西 → atan2(-dx, dz)
-            float facingYaw = (float) Math.toDegrees(Math.atan2(
-                    spawnX - player.getX(), player.getZ() - spawnZ));
-            guard.setYRot(facingYaw);
-            guard.yBodyRot = facingYaw;
-            guard.yHeadRot = facingYaw;
+                guard.setCustomName(Component.literal("超级保安"));
+                guard.setCustomNameVisible(true);
 
-            guard.setCustomName(Component.literal("超级保安"));
-            guard.setCustomNameVisible(true);
+                guard.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SPEED,
+                        Integer.MAX_VALUE, 2, false, false));
+                guard.addEffect(new MobEffectInstance(MobEffects.DAMAGE_BOOST,
+                        Integer.MAX_VALUE, 4, false, false));
 
-            // 速度III（amplifier=2）和力量V（amplifier=4），无抗性提升
-            guard.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SPEED,
-                    Integer.MAX_VALUE, 2, false, false));
-            guard.addEffect(new MobEffectInstance(MobEffects.DAMAGE_BOOST,
-                    Integer.MAX_VALUE, 4, false, false));
+                CompoundTag tag = guard.getPersistentData();
+                tag.putBoolean("magicemblem_super_guard", true);
+                tag.putLong("spawn_time", serverLevel.getGameTime());
 
-            // 标记生成时间（用于90秒后自动消失）
-            CompoundTag tag = guard.getPersistentData();
-            tag.putBoolean("magicemblem_super_guard", true);
-            tag.putLong("spawn_time", serverLevel.getGameTime());
+                guard.setPersistenceRequired();
+                guard.setHealth(200.0f);
 
-            // 持久化（防止和平难度清除）
-            guard.setPersistenceRequired();
-
-            // 设置初始血量
-            guard.setHealth(200.0f);
-
-            // 加入世界
-            boolean added = serverLevel.addFreshEntity(guard);
-            MagicEmblem.LOGGER.info("[MagicEmblem] School guard spawned: result={}, pos=({}, {}, {})",
-                    added, guard.getX(), guard.getY(), guard.getZ());
-
-            if (!added) {
-                MagicEmblem.LOGGER.error("[MagicEmblem] FAILED to spawn school guard!");
+                boolean added = serverLevel.addFreshEntity(guard);
+                if (!added) {
+                    MagicEmblem.LOGGER.error("[MagicEmblem] FAILED to spawn school guard #{}/{}", i + 1, count);
+                }
             }
         } catch (Exception e) {
             MagicEmblem.LOGGER.error("[MagicEmblem] EXCEPTION in spawnSuperGuard", e);
         }
+    }
+
+    /**
+     * 获取玩家严重违纪等级（0=I, 1=II, 2=III）
+     */
+    private static int getViolationLevel(ServerPlayer player) {
+        MobEffectInstance instance = player.getEffect(ModEffects.SERIOUS_VIOLATION.get());
+        return instance != null ? instance.getAmplifier() : 0;
     }
 
     /**
